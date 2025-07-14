@@ -2,11 +2,7 @@
 
 ### 技术栈：
 
-前端：Nextjs + shadcnUI 
-
-服务端： nodejs + mysql + prisma
-
-配置 docker-compose 文件， 支持docker一键部署前后端
+前端：Nextjs + shadcn-ui + nodejs + mysql + prisma
 
 ### 需求：
 
