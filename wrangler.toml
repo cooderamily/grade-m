@@ -1,0 +1,10 @@
+name = "grade-m2"
+compatibility_date = "2025-07-15"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "grade-m2-db"
+database_id = "f34cb71f-7aa0-4907-8d9e-da5444ca0311"
+
+[vars]
+NODE_ENV = "production"

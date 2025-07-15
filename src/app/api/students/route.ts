@@ -3,46 +3,33 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
+// 标记为动态路由
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const classId = searchParams.get('classId');
+    const classId = request.nextUrl.searchParams.get('classId');
 
-    let students;
     if (classId) {
-      // 根据班级ID查询学生
-      students = await prisma.student.findMany({
-        where: {
-          classId: parseInt(classId)
-        },
-        include: {
-          class: true
-        },
-        orderBy: {
-          name: 'asc'
-        }
+      // 根据班级获取学生
+      const students = await prisma.student.findMany({
+        where: { classId: parseInt(classId) },
+        include: { class: true }
       });
+      return NextResponse.json(students);
     } else {
-      // 查询所有学生
-      students = await prisma.student.findMany({
-        include: {
-          class: true
-        },
-        orderBy: {
-          name: 'asc'
-        }
+      // 获取所有学生
+      const students = await prisma.student.findMany({
+        include: { class: true }
       });
+      return NextResponse.json(students);
     }
-
-    return NextResponse.json(students);
   } catch (error) {
-    console.error('获取学生数据失败:', error);
+    console.error('获取学生列表失败:', error);
     return NextResponse.json(
-      { error: '获取学生数据失败' },
+      { error: '获取学生列表失败' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -111,10 +98,9 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const id = request.nextUrl.searchParams.get('id');
     
     if (!id) {
       return NextResponse.json(

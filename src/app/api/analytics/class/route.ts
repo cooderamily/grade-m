@@ -3,11 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
+// 标记为动态路由
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const classId = searchParams.get('classId');
-    const subject = searchParams.get('subject');
+    const classId = request.nextUrl.searchParams.get('classId');
+    const subject = request.nextUrl.searchParams.get('subject');
 
     if (!classId) {
       return NextResponse.json(
