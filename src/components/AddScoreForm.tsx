@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, LabelList } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
@@ -65,18 +65,14 @@ const subjectLabels = {
 };
 
 // 图表配置
-const chartConfig = {
-  CHINESE: {
-    label: "语文",
+const singleSubjectChartConfig = {
+  score: {
+    label: "分数",
     color: "hsl(var(--chart-1))",
   },
-  MATH: {
-    label: "数学", 
-    color: "hsl(var(--chart-2))",
-  },
-  ENGLISH: {
-    label: "英语",
-    color: "hsl(var(--chart-3))",
+  rank: {
+    label: "排名",
+    color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
 
@@ -89,6 +85,7 @@ export default function AddScoreForm() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [currentSubject, setCurrentSubject] = useState<string>(''); // 添加当前科目状态
   
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedStudent, setSelectedStudent] = useState('');
@@ -208,9 +205,10 @@ export default function AddScoreForm() {
           title: "录入成功！",
           description: "成绩已成功录入系统",
         });
-        // 重置表单
+        // 记录当前录入的科目
+        setCurrentSubject(selectedSubject);
+        // 重置分数输入
         setScore('');
-        setSelectedSubject('');
         // 加载该学生的成绩分析
         await loadStudentAnalytics(selectedStudent);
       } else {
@@ -292,8 +290,73 @@ export default function AddScoreForm() {
     );
   };
 
+  // 准备单科目图表数据
+  const prepareSingleSubjectChartData = () => {
+    if (!analyticsData || !currentSubject) return [];
+
+    const data = [];
+    const examMap = new Map();
+    
+    // 只处理当前科目的数据
+    for (const score of analyticsData.scoreHistory) {
+      if (score.subject === currentSubject) {
+        const examKey = score.examId;
+        if (!examMap.has(examKey)) {
+          examMap.set(examKey, {
+            examName: score.exam.name,
+            examDate: score.exam.date,
+            score: Number(score.score) // 确保是数字
+          });
+        }
+      }
+    }
+
+    // 转换为数组并排序
+    const result = Array.from(examMap.values()).sort((a, b) => 
+      new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
+    );
+    
+    console.log('单科目图表数据:', currentSubject, result);
+    return result;
+  };
+
+  // 准备单科目排名数据
+  const prepareSingleSubjectRankingData = () => {
+    if (!analyticsData || !currentSubject) return [];
+
+    const rankingMap = new Map();
+    
+    for (const ranking of analyticsData.rankings) {
+      if (ranking.subject === currentSubject) {
+        const exam = analyticsData.scoreHistory.find(s => 
+          s.examId === ranking.examId && s.subject === ranking.subject
+        );
+        
+        if (exam) {
+          const examKey = exam.examId;
+          if (!rankingMap.has(examKey)) {
+            rankingMap.set(examKey, {
+              examName: exam.exam.name,
+              examDate: exam.exam.date,
+              rank: Number(ranking.rank) // 确保是数字
+            });
+          }
+        }
+      }
+    }
+
+    const result = Array.from(rankingMap.values()).sort((a, b) => 
+      new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
+    );
+    
+    console.log('单科目排名数据:', currentSubject, result);
+    return result;
+  };
+
   const chartData = prepareChartData();
   const rankingData = prepareRankingData();
+  const singleSubjectChartData = prepareSingleSubjectChartData();
+  const singleSubjectRankingData = prepareSingleSubjectRankingData();
 
   if (loading) {
     return (
@@ -317,7 +380,14 @@ export default function AddScoreForm() {
             {/* 班级选择 */}
             <div className="space-y-2">
               <Label htmlFor="class-select">班级</Label>
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <Select 
+                value={selectedClass} 
+                onValueChange={(value) => {
+                  setSelectedClass(value);
+                  setCurrentSubject(''); // 清空当前科目
+                  setAnalyticsData(null); // 清空分析数据
+                }}
+              >
                 <SelectTrigger id="class-select">
                   <SelectValue placeholder="选择班级" />
                 </SelectTrigger>
@@ -336,7 +406,11 @@ export default function AddScoreForm() {
               <Label htmlFor="student-select">学生</Label>
               <Select 
                 value={selectedStudent} 
-                onValueChange={setSelectedStudent}
+                onValueChange={(value) => {
+                  setSelectedStudent(value);
+                  setCurrentSubject(''); // 清空当前科目
+                  setAnalyticsData(null); // 清空分析数据
+                }}
                 disabled={!selectedClass}
                 
               >
@@ -423,7 +497,7 @@ export default function AddScoreForm() {
           </Card>
         )}
 
-        {analyticsData && (
+        {analyticsData && currentSubject && (
           <>
             {/* 学生基本信息 */}
             <Card>
@@ -441,158 +515,231 @@ export default function AddScoreForm() {
                     <p className="font-semibold">{analyticsData.student.class?.name}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">参与考试</p>
-                    <p className="font-semibold">{analyticsData.totalExams} 次</p>
+                    <p className="text-sm text-gray-600">科目</p>
+                    <p className="font-semibold">{subjectLabels[currentSubject as keyof typeof subjectLabels]}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">成绩记录</p>
-                    <p className="font-semibold">{analyticsData.scoreHistory.length} 条</p>
+                    <p className="font-semibold">
+                      {analyticsData.scoreHistory.filter(s => s.subject === currentSubject).length} 条
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 科目平均分 */}
-            <Card>
-              <CardHeader>
-                <CardTitle>科目平均分</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  {Object.entries(analyticsData.subjectAverages).map(([subject, average]) => (
-                    <div key={subject} className="text-center p-4 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-600">{subjectLabels[subject as keyof typeof subjectLabels]}</p>
-                      <p className="text-2xl font-bold text-blue-600">{average}</p>
+
+            {/* 进度分析 */}
+            {singleSubjectChartData.length > 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>进度分析</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">最新分数</p>
+                      <p className="font-semibold text-2xl">
+                        {singleSubjectChartData[singleSubjectChartData.length - 1]?.score} 分
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 成绩趋势图 */}
-            {chartData.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>成绩趋势</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig} className="w-full h-[200px]">
-                    <LineChart
-                      accessibilityLayer
-                      data={chartData}
-                      margin={{
-                        left: 12,
-                        right: 12,
-                      }}
-                    >
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="examName"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                      />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                      <Line
-                        dataKey="CHINESE"
-                        type="monotone"
-                        stroke="var(--color-CHINESE)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-CHINESE)' }}
-                      />
-                      <Line
-                        dataKey="MATH"
-                        type="monotone"
-                        stroke="var(--color-MATH)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-MATH)' }}
-                      />
-                      <Line
-                        dataKey="ENGLISH"
-                        type="monotone"
-                        stroke="var(--color-ENGLISH)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-ENGLISH)' }}
-                      />
-                      <ChartLegend content={<ChartLegendContent />} />
-                    </LineChart>
-                  </ChartContainer>
+                    <div>
+                      <p className="text-sm text-gray-600">分数变化</p>
+                      <p className={`font-semibold text-2xl ${
+                        singleSubjectChartData.length > 1 
+                          ? (singleSubjectChartData[singleSubjectChartData.length - 1]?.score - 
+                             singleSubjectChartData[singleSubjectChartData.length - 2]?.score) > 0 
+                            ? 'text-green-600' : 'text-red-600'
+                          : 'text-gray-600'
+                      }`}>
+                        {singleSubjectChartData.length > 1 
+                          ? (singleSubjectChartData[singleSubjectChartData.length - 1]?.score - 
+                             singleSubjectChartData[singleSubjectChartData.length - 2]?.score) > 0 
+                            ? '+' : ''
+                          : ''}
+                        {singleSubjectChartData.length > 1 
+                          ? (singleSubjectChartData[singleSubjectChartData.length - 1]?.score - 
+                             singleSubjectChartData[singleSubjectChartData.length - 2]?.score).toFixed(1)
+                          : '0.0'} 分
+                      </p>
+                    </div>
+                    {singleSubjectRankingData.length > 0 && (
+                      <>
+                        <div>
+                          <p className="text-sm text-gray-600">当前排名</p>
+                          <p className="font-semibold text-2xl">
+                            第 {singleSubjectRankingData[singleSubjectRankingData.length - 1]?.rank} 名
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">排名变化</p>
+                          <p className={`font-semibold text-2xl ${
+                            singleSubjectRankingData.length > 1 
+                              ? (singleSubjectRankingData[singleSubjectRankingData.length - 2]?.rank - 
+                                 singleSubjectRankingData[singleSubjectRankingData.length - 1]?.rank) > 0 
+                                ? 'text-green-600' : 'text-red-600'
+                              : 'text-gray-600'
+                          }`}>
+                            {singleSubjectRankingData.length > 1 
+                              ? (singleSubjectRankingData[singleSubjectRankingData.length - 2]?.rank - 
+                                 singleSubjectRankingData[singleSubjectRankingData.length - 1]?.rank) > 0 
+                                ? '↑' : '↓'
+                              : '-'}
+                            {singleSubjectRankingData.length > 1 
+                              ? Math.abs(singleSubjectRankingData[singleSubjectRankingData.length - 2]?.rank - 
+                                        singleSubjectRankingData[singleSubjectRankingData.length - 1]?.rank)
+                              : 0} 名
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* 排名变化图 */}
-            {rankingData.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>班级排名变化</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig} className="w-full h-[200px]"> 
-                    <LineChart
-                      accessibilityLayer
-                      data={rankingData}
-                      margin={{
-                        left: 12,
-                        right: 12,
-                      }}
+            {/* 分数变化和排名变化上下排列显示 */}
+            <div className="space-y-6">
+              {/* 分数变化图 */}
+              {singleSubjectChartData.length > 0 && (
+                <Card >
+                  <CardHeader>
+                    <CardTitle>分数变化</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer 
+                      config={singleSubjectChartConfig}
+                      className="w-full "
                     >
-                      <CartesianGrid vertical={false} />
-                      <XAxis
-                        dataKey="examName"
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                      />
-                      <YAxis
-                        reversed
-                        domain={[1, 'dataMax']}
-                        tickLine={false}
-                        axisLine={false}
-                        tickMargin={8}
-                      />
-                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                      <Line
-                        dataKey="CHINESE"
-                        type="monotone"
-                        stroke="var(--color-CHINESE)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-CHINESE)' }}
-                      />
-                      <Line
-                        dataKey="MATH"
-                        type="monotone"
-                        stroke="var(--color-MATH)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-MATH)' }}
-                      />
-                      <Line
-                        dataKey="ENGLISH"
-                        type="monotone"
-                        stroke="var(--color-ENGLISH)"
-                        strokeWidth={2}
-                        dot={false}
-                        label={{ fontSize: 12, fill: 'var(--color-ENGLISH)' }}
-                      />
-                      <ChartLegend content={<ChartLegendContent />} />
-                    </LineChart>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            )}
+                      <LineChart
+                        accessibilityLayer
+                        data={singleSubjectChartData}
+                        margin={{
+                          left: 12,
+                          right: 12,
+                        }}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="examName"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                        <YAxis
+                          domain={[0, 100]}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
+                        />
+                        {/* <ChartLegend content={<ChartLegendContent />} /> */}
+                        <Line
+                          dataKey="score"
+                          type="natural"
+                          stroke={singleSubjectChartConfig.score.color}
+                          strokeWidth={2}
+                          dot={{
+                            fill: singleSubjectChartConfig.score.color,
+                            r: 4,
+                          }}
+                          activeDot={{
+                            r: 6,
+                            fill: singleSubjectChartConfig.score.color,
+                            stroke: singleSubjectChartConfig.score.color,
+                          }}
+                        >
+                          <LabelList 
+                            dataKey="score" 
+                            position="top" 
+                            style={{ 
+                              fontSize: '12px', 
+                              fill: singleSubjectChartConfig.score.color,
+                              fontWeight: 'bold' 
+                            }} 
+                          />
+                        </Line>
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 排名变化图 */}
+              {singleSubjectRankingData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>排名变化</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer 
+                      config={singleSubjectChartConfig}
+                      className="w-full"
+                    >
+                      <LineChart
+                        accessibilityLayer
+                        data={singleSubjectRankingData}
+                        margin={{
+                          left: 12,
+                          right: 12,
+                        }}
+                      >
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                          dataKey="examName"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          tickFormatter={(value) => value.slice(0, 3)}
+                        />
+                        <YAxis
+                          reversed
+                          domain={[1, 'dataMax']}
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
+                        />
+                        {/* <ChartLegend content={<ChartLegendContent />} /> */}
+                        <Line
+                          dataKey="rank"
+                          type="natural"
+                          stroke={singleSubjectChartConfig.rank.color}
+                          strokeWidth={2}
+                          dot={{
+                            fill: singleSubjectChartConfig.rank.color,
+                            r: 4,
+                          }}
+                          activeDot={{
+                            r: 6,
+                            fill: singleSubjectChartConfig.rank.color,
+                            stroke: singleSubjectChartConfig.rank.color,
+                          }}
+                        >
+                          <LabelList 
+                            dataKey="rank" 
+                            position="bottom" 
+                            style={{ 
+                              fontSize: '12px', 
+                              fill: singleSubjectChartConfig.rank.color,
+                              fontWeight: 'bold' 
+                            }} 
+                          />
+                        </Line>
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
           </>
         )}
 
@@ -600,7 +747,7 @@ export default function AddScoreForm() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center text-gray-500">
-                录入成绩后将显示该学生的成绩分析
+                录入成绩后将显示该科目的成绩分析
               </div>
             </CardContent>
           </Card>

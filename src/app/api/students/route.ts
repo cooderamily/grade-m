@@ -47,12 +47,107 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const { name, classId } = await request.json();
-  const newStudent = await prisma.student.create({
-    data: {
-      name,
-      classId,
-    },
-  });
-  return NextResponse.json(newStudent);
+  try {
+    const { name, classId } = await request.json();
+    
+    if (!name || name.trim() === '' || !classId) {
+      return NextResponse.json(
+        { error: '学生姓名和班级不能为空' },
+        { status: 400 }
+      );
+    }
+
+    const newStudent = await prisma.student.create({
+      data: {
+        name: name.trim(),
+        classId: parseInt(classId),
+      },
+      include: {
+        class: true
+      }
+    });
+    return NextResponse.json(newStudent);
+  } catch (error) {
+    console.error('创建学生失败:', error);
+    return NextResponse.json(
+      { error: '创建学生失败' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const { id, name, classId } = await request.json();
+    
+    if (!id || !name || name.trim() === '' || !classId) {
+      return NextResponse.json(
+        { error: '学生ID、姓名和班级不能为空' },
+        { status: 400 }
+      );
+    }
+
+    const updatedStudent = await prisma.student.update({
+      where: { id: parseInt(id) },
+      data: { 
+        name: name.trim(),
+        classId: parseInt(classId)
+      },
+      include: {
+        class: true
+      }
+    });
+    return NextResponse.json(updatedStudent);
+  } catch (error) {
+    console.error('更新学生失败:', error);
+    return NextResponse.json(
+      { error: '更新学生失败' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: '学生ID不能为空' },
+        { status: 400 }
+      );
+    }
+
+    // 检查学生是否有成绩记录
+    const studentWithScores = await prisma.student.findUnique({
+      where: { id: parseInt(id) },
+      include: { scores: true }
+    });
+
+    if (studentWithScores && studentWithScores.scores.length > 0) {
+      return NextResponse.json(
+        { error: '不能删除有成绩记录的学生，请先删除相关成绩' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.student.delete({
+      where: { id: parseInt(id) }
+    });
+    
+    return NextResponse.json({ message: '学生删除成功' });
+  } catch (error) {
+    console.error('删除学生失败:', error);
+    return NextResponse.json(
+      { error: '删除学生失败' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
 }

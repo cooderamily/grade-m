@@ -21,7 +21,7 @@ export default function Home() {
         </div>
         
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {/* 成绩录入 */}
           <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-gradient-to-br from-card to-card/80">
             <CardHeader className="pb-3">
@@ -103,7 +103,7 @@ export default function Home() {
           </Card>
 
           {/* 数据管理 */}
-          {/* <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-gradient-to-br from-card to-card/80">
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md bg-gradient-to-br from-card to-card/80">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-500/10 rounded-lg group-hover:bg-orange-500/20 transition-colors">
@@ -120,7 +120,7 @@ export default function Home() {
                 </Button>
               </Link>
             </CardContent>
-          </Card> */}
+          </Card>
         </div>
       </main>
     </div>

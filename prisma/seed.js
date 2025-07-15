@@ -5,13 +5,13 @@ async function main() {
   // 创建班级
   const class1 = await prisma.class.create({
     data: {
-      name: "高一(1)班",
+      name: "初一9班",
     },
   });
 
   const class2 = await prisma.class.create({
     data: {
-      name: "高一(2)班",
+      name: "初一16班",
     },
   });
 
