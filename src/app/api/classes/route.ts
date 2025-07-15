@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db';
 
+// Edge Runtime 配置
+export const runtime = 'edge';
 // 标记为动态路由
 export const dynamic = 'force-dynamic';
 

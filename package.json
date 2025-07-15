@@ -9,7 +9,7 @@
     "lint": "next lint",
     "db:seed": "node prisma/seed.js",
     "db:reset": "prisma migrate reset && npm run db:seed",
-    "cf:build": "next build && @cloudflare/next-on-pages",
+    "cf:build": "next build && npx @cloudflare/next-on-pages",
     "cf:dev": "next build && wrangler pages dev .vercel/output/static"
   },
   "dependencies": {

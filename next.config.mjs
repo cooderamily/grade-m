@@ -11,9 +11,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    runtime: "experimental-edge",
-  },
 };
 
 export default nextConfig;

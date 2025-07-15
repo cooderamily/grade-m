@@ -1,0 +1,14 @@
+{
+  "runtime": "edge",
+  "name": "api/classes",
+  "deploymentTarget": "v8-worker",
+  "entrypoint": "index.js",
+  "assets": [],
+  "framework": {
+    "slug": "nextjs",
+    "version": "14.2.4"
+  },
+  "filePathMap": {
+    "wasm/wasm_848bce377ad47c933e205bdb413ae8af5ac0ccf0.wasm": ".next/server/edge-chunks/wasm_848bce377ad47c933e205bdb413ae8af5ac0ccf0.wasm"
+  }
+}

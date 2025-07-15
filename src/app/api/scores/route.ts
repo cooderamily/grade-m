@@ -1,9 +1,12 @@
-import { PrismaClient } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { getDatabase } from '@/lib/db';
 
-const prisma = new PrismaClient();
+// Edge Runtime 配置
+export const runtime = 'edge';
 
-export async function GET() {
+export async function GET(request: NextRequest, context?: any) {
+  const prisma = getDatabase(context);
+  
   try {
     const scores = await prisma.score.findMany({
       include: {
@@ -26,11 +29,17 @@ export async function GET() {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (context?.env?.DB) {
+      // D1 connections are automatically managed
+    } else {
+      await prisma.$disconnect();
+    }
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, context?: any) {
+  const prisma = getDatabase(context);
+  
   try {
     const body = await request.json();
     const { studentId, examId, subject, score } = body;
@@ -93,11 +102,17 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (context?.env?.DB) {
+      // D1 connections are automatically managed
+    } else {
+      await prisma.$disconnect();
+    }
   }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request: NextRequest, context?: any) {
+  const prisma = getDatabase(context);
+  
   try {
     const body = await request.json();
     const { id, studentId, examId, subject, score } = body;
@@ -178,11 +193,17 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (context?.env?.DB) {
+      // D1 connections are automatically managed
+    } else {
+      await prisma.$disconnect();
+    }
   }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request: NextRequest, context?: any) {
+  const prisma = getDatabase(context);
+  
   try {
     const id = request.nextUrl.searchParams.get('id');
 
@@ -222,6 +243,10 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (context?.env?.DB) {
+      // D1 connections are automatically managed
+    } else {
+      await prisma.$disconnect();
+    }
   }
 }
