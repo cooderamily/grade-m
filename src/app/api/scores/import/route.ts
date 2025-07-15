@@ -4,8 +4,8 @@ import { getDatabase } from '@/lib/db';
 // Edge Runtime 配置
 export const runtime = 'edge';
 
-export async function POST(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function POST(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const body = await request.json();
@@ -158,10 +158,6 @@ export async function POST(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 } 

@@ -6,8 +6,8 @@ export const runtime = 'edge';
 // 标记为动态路由
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function GET(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const classId = request.nextUrl.searchParams.get('classId');
@@ -146,10 +146,6 @@ export async function GET(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 } 

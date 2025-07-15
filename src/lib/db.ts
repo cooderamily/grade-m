@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaD1 } from '@prisma/adapter-d1';
+import { getCloudflareBinding, getEnvironmentInfo } from './cloudflare-env';
 
 declare global {
   var __db__: PrismaClient | undefined;
@@ -7,6 +8,7 @@ declare global {
 
 // Cloudflare Workers 环境下的 Prisma 客户端
 export function createD1PrismaClient(d1: any) {
+  console.log('创建 D1 Prisma 客户端');
   const adapter = new PrismaD1(d1);
   return new PrismaClient({ 
     adapter,
@@ -15,29 +17,37 @@ export function createD1PrismaClient(d1: any) {
 }
 
 // 获取数据库实例的辅助函数
-export function getDatabase(context?: any) {
-  // 在 Cloudflare Workers/Edge Runtime 环境中
-  if (context?.env?.DB) {
-    return createD1PrismaClient(context.env.DB);
-  }
+export function getDatabase() {
+  console.log('getDatabase: 开始获取数据库连接');
   
-  // 检查是否在 Edge Runtime 中运行但没有 D1 绑定
-  if ((globalThis as any).EdgeRuntime !== undefined || process.env.NEXT_RUNTIME === 'edge') {
-    throw new Error('D1 database binding not available in Edge Runtime');
+  const envInfo = getEnvironmentInfo();
+  console.log('环境信息:', envInfo);
+  
+  // 在 Cloudflare 环境中，尝试获取 D1 绑定
+  const d1Binding = getCloudflareBinding('DB');
+  if (d1Binding) {
+    console.log('使用 D1 数据库连接');
+    try {
+      return createD1PrismaClient(d1Binding);
+    } catch (error) {
+      console.error('创建 D1 客户端失败:', error);
+      throw new Error(`D1 client creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   
   // 本地开发环境
-  if (process.env.NODE_ENV !== 'production') {
+  if (envInfo.hasProcess && envInfo.nodeEnv !== 'production') {
+    console.log('使用本地开发环境数据库连接');
     if (!globalThis.__db__) {
       globalThis.__db__ = new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: envInfo.nodeEnv === 'development' ? ['query', 'error', 'warn'] : ['error'],
       });
     }
     return globalThis.__db__;
   }
   
-  // 生产环境构建时的占位符
-  return new PrismaClient({
-    log: ['error'],
-  });
+  // 无法获取数据库连接
+  const errorMessage = `无法获取数据库连接。环境信息: ${JSON.stringify(envInfo)}`;
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 } 

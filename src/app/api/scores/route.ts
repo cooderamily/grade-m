@@ -4,8 +4,8 @@ import { getDatabase } from '@/lib/db';
 // Edge Runtime 配置
 export const runtime = 'edge';
 
-export async function GET(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function GET(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const scores = await prisma.score.findMany({
@@ -29,16 +29,12 @@ export async function GET(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 }
 
-export async function POST(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function POST(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const body = await request.json();
@@ -102,16 +98,12 @@ export async function POST(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 }
 
-export async function PUT(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function PUT(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const body = await request.json();
@@ -193,16 +185,12 @@ export async function PUT(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 }
 
-export async function DELETE(request: NextRequest, context?: any) {
-  const prisma = getDatabase(context);
+export async function DELETE(request: NextRequest) {
+  const prisma = getDatabase();
   
   try {
     const id = request.nextUrl.searchParams.get('id');
@@ -243,10 +231,6 @@ export async function DELETE(request: NextRequest, context?: any) {
       { status: 500 }
     );
   } finally {
-    if (context?.env?.DB) {
-      // D1 connections are automatically managed
-    } else {
-      await prisma.$disconnect();
-    }
+    await prisma.$disconnect();
   }
 }
