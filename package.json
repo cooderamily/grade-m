@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "db:seed": "node prisma/seed.js",
-    "db:reset": "prisma migrate reset && npm run db:seed"
+    "db:reset": "prisma migrate reset && npm run db:seed",
+    "cf:build": "next build && @cloudflare/next-on-pages",
+    "cf:dev": "next build && wrangler pages dev .vercel/output/static"
   },
   "dependencies": {
     "@prisma/adapter-d1": "^6.11.1",
@@ -30,6 +32,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.12",
     "@cloudflare/workers-types": "^4.20250715.0",
     "@types/node": "^20",
     "@types/react": "^18",
