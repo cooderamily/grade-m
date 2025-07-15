@@ -5,13 +5,6 @@ compatibility_flags = ["nodejs_compat"]
 # Pages 输出目录配置  
 pages_build_output_dir = ".vercel/output/static"
 
-# Next.js on Pages 配置
-[build]
-command = "npm run cf:build"
-
-# 静态资源配置
-[assets]
-directory = ".vercel/output/static"
 
 [[d1_databases]]
 binding = "DB"
